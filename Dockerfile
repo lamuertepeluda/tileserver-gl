@@ -24,5 +24,7 @@ RUN apt-get -qq update \
 && apt-get clean
 
 RUN mkdir -p /usr/src/app
-COPY / /usr/src/app
-RUN cd /usr/src/app && npm install --production
+WORKDIR /usr/src/app
+COPY package.json .
+RUN npm install --production
+COPY / .
