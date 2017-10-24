@@ -484,6 +484,48 @@ module.exports = function(options, repo, params, id, publicUrl, dataResolver) {
                         tileSize, tileSize, scale, format, res, next);
   });
 
+  app.get('/' + id + '/:z/renderedfeatures', function(req, res, next) {
+    var modifiedSince = req.get('if-modified-since'), cc = req.get('cache-control');
+    if (modifiedSince && (!cc || cc.indexOf('no-cache') == -1)) {
+      if (new Date(lastModified) <= new Date(modifiedSince)) {
+        return res.sendStatus(304);
+      }
+    }
+
+    // TODO accept box too
+    if (!req.query.point) {
+      return res.status(400).send('"point" or "box" parameter should be provided');
+    }
+    var point = req.query.point.split(',').map(parseFloat);
+
+    var pool = map.renderers[1];
+    pool.acquire(function(err, renderer) {
+      if (err) return next(err);
+      var mbglZ = Math.max(parseInt(req.params.z) - 1, 0);
+      var renderParams = {
+        zoom: mbglZ,
+        center: point,
+        bearing: 0,
+        pitch: 0,
+        width: 256,
+        height: 256
+      };
+      renderer.render(renderParams, function(err, data) {
+        if (err) return next(err);
+        var opts = {};
+        if (req.query.layers) {
+          opts.layers = req.query.layers.split(',');
+        }
+        if (req.query.filter) {
+          opts.filter = req.query.filter;
+        }
+        var features = renderer.queryRenderedFeatures([128, 128], opts)
+        pool.release(renderer);
+        res.send(features);
+      });
+    });
+  });
+
   var extractPathFromQuery = function(query, transformer) {
     var pathParts = (query.path || '').split('|');
     var path = [];

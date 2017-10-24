@@ -23,6 +23,17 @@
       q.indexOf('vector') >= 0 ? 'vector' :
         (q.indexOf('raster') >= 0 ? 'raster' :
           (mapboxgl.supported() ? 'vector' : 'raster'));
+
+    function featuresToHTML(features) {
+      var html = '<ul>';
+      for (var i = 0; i < features.length; i++) {
+        var feature = features[i];
+        html += '<li>' +  feature.id + ' : ' + JSON.stringify(feature.properties) +'</li>';
+      }
+      html += '</ul>';
+      return html;
+    }
+
     if (preference == 'vector') {
       mapboxgl.setRTLTextPlugin('{{public_url}}mapbox-gl-rtl-text.js{{&key_query}}');
       var map = new mapboxgl.Map({
@@ -31,9 +42,36 @@
         hash: true
       });
       map.addControl(new mapboxgl.NavigationControl());
+
+      // Fetch features information from local map, as everything is present in
+      // vectorial data
+      map.on('click', function (e) {
+        var features = map.queryRenderedFeatures(e.point);
+        new mapboxgl.Popup()
+          .setLngLat(e.lngLat)
+          .setHTML(featuresToHTML(features))
+          .addTo(map);
+      });
     } else {
       var map = L.mapbox.map('map', '{{public_url}}styles/{{id}}.json{{&key_query}}', { zoomControl: false });
       new L.Control.Zoom({ position: 'topright' }).addTo(map);
+      map.on('click', function(e) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '{{public_url}}styles/{{id}}/' + map.getZoom() + '/renderedfeatures?point=' + e.latlng.lng + ',' + e.latlng.lat);
+        xhr.onload = function() {
+          if (xhr.status === 200) {
+            var features = JSON.parse(xhr.responseText);
+            L.popup()
+              .setLatLng(e.latlng)
+              .setContent(featuresToHTML(features))
+              .openOn(map);
+          }
+          else {
+            console.error('Request failed.', xhr.status);
+          }
+        };
+        xhr.send();
+      });
       setTimeout(function() {
         new L.Hash(map);
       }, 0);
