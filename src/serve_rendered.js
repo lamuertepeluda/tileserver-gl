@@ -485,13 +485,6 @@ module.exports = function(options, repo, params, id, publicUrl, dataResolver) {
   });
 
   app.get('/' + id + '/:z/renderedfeatures', function(req, res, next) {
-    var modifiedSince = req.get('if-modified-since'), cc = req.get('cache-control');
-    if (modifiedSince && (!cc || cc.indexOf('no-cache') == -1)) {
-      if (new Date(lastModified) <= new Date(modifiedSince)) {
-        return res.sendStatus(304);
-      }
-    }
-
     // TODO accept box too
     if (!req.query.point) {
       return res.status(400).send('"point" or "box" parameter should be provided');
@@ -507,8 +500,8 @@ module.exports = function(options, repo, params, id, publicUrl, dataResolver) {
         center: point,
         bearing: 0,
         pitch: 0,
-        width: 256,
-        height: 256
+        width: 50,
+        height: 50
       };
       renderer.render(renderParams, function(err, data) {
         if (err) return next(err);
@@ -519,7 +512,7 @@ module.exports = function(options, repo, params, id, publicUrl, dataResolver) {
         if (req.query.filter) {
           opts.filter = req.query.filter;
         }
-        var features = renderer.queryRenderedFeatures([128, 128], opts)
+        var features = renderer.queryRenderedFeatures([25, 25], opts)
         pool.release(renderer);
         res.send(features);
       });
