@@ -46,3 +46,13 @@ On laptop you can use [Docker Kitematic](https://kitematic.com/) and search "til
 ## Documentation
 
 You can read full documentation of this project at http://tileserver.readthedocs.io/.
+
+## Running tests
+
+If you have all required dependencies installed locally:
+
+    npm test
+
+Or using docker (WARNING: sometimes it fails with a core dumped exception):
+
+    docker build -f Dockerfile_test .

@@ -485,23 +485,38 @@ module.exports = function(options, repo, params, id, publicUrl, dataResolver) {
   });
 
   app.get('/' + id + '/:z/renderedfeatures', function(req, res, next) {
-    // TODO accept box too
-    if (!req.query.point) {
-      return res.status(400).send('"point" or "box" parameter should be provided');
+    // TODO: also support polygon ?
+    if (!req.query.point  && !req.query.bbox) {
+      return res.status(400).send('"point" or "bbox" parameter should be provided');
     }
-    var point = req.query.point.split(',').map(parseFloat);
+    var z = Math.max(parseInt(req.params.z) - 1, 0);
+    let point, width, height, geometry
+    if (req.query.point) {
+      point = req.query.point.split(',').map(parseFloat);
+      width = 50;
+      height = 50;
+      geometry = [25, 25]
+    }
+    if (req.query.bbox) {
+      var bbox = req.query.bbox.split(',').map(parseFloat);
+      var minCorner = mercator.px([bbox[0], bbox[3]], z),
+          maxCorner = mercator.px([bbox[2], bbox[1]], z);
+      width = maxCorner[0] - minCorner[0];
+      height = maxCorner[1] - minCorner[1];
+      point = [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2]
+      geometry = [[0, width], [0, height]]
+    }
 
     var pool = map.renderers[1];
     pool.acquire(function(err, renderer) {
       if (err) return next(err);
-      var mbglZ = Math.max(parseInt(req.params.z) - 1, 0);
       var renderParams = {
-        zoom: mbglZ,
+        zoom: z,
         center: point,
         bearing: 0,
         pitch: 0,
-        width: 50,
-        height: 50
+        width: width,
+        height: height
       };
       renderer.render(renderParams, function(err, data) {
         if (err) return next(err);
@@ -512,7 +527,8 @@ module.exports = function(options, repo, params, id, publicUrl, dataResolver) {
         if (req.query.filter) {
           opts.filter = req.query.filter;
         }
-        var features = renderer.queryRenderedFeatures([25, 25], opts)
+        // TODO: auto deduplicate and merge polygons ?
+        var features = renderer.queryRenderedFeatures(geometry, opts)
         pool.release(renderer);
         res.send(features);
       });
