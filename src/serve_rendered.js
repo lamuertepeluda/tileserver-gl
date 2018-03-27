@@ -5,7 +5,9 @@ var advancedPool = require('advanced-pool'),
     path = require('path'),
     url = require('url'),
     util = require('util'),
-    zlib = require('zlib');
+    zlib = require('zlib'),
+    objectHash = require('object-hash'),
+    turf = require('@turf/turf');
 
 // sharp has to be required before node-canvas
 // see https://github.com/lovell/sharp/issues/371
@@ -513,8 +515,9 @@ module.exports = function(options, repo, params, id, publicUrl, dataResolver) {
       height = 50;
       geometry = [25, 25]
     }
+    var bbox
     if (req.query.bbox) {
-      var bbox = req.query.bbox.split(',').map(parseFloat);
+      bbox = req.query.bbox.split(',').map(parseFloat);
       var minCorner = mercator.px([bbox[0], bbox[3]], z),
           maxCorner = mercator.px([bbox[2], bbox[1]], z);
       width = maxCorner[0] - minCorner[0];
@@ -543,13 +546,40 @@ module.exports = function(options, repo, params, id, publicUrl, dataResolver) {
         if (req.query.filter) {
           opts.filter = req.query.filter;
         }
-        // TODO: auto deduplicate and merge polygons ?
         var features = renderer.queryRenderedFeatures(geometry, opts)
-        if (req.query.nogeometry && req.query.nogeometry !== 'false') {
+
+        // lighter payload without geometry  if requested
+        var noGeometry = req.query.nogeometry && req.query.nogeometry !== 'false'
+        if (noGeometry) {
           features.forEach(function(feature) {
             delete feature.geometry
           })
         }
+
+        if (req.query.bbox) {
+          // merge duplicate features
+          var featuresHashes = {}
+          features.forEach(function(feature) {
+            const h = objectHash({id: feature.id, properties: feature.properties})
+            featuresHashes[h] = featuresHashes[h] || []
+            featuresHashes[h].push(feature)
+          })
+          features = Object.keys(featuresHashes).map(function(h) {
+            if (noGeometry) return featuresHashes[h][0]
+            return featuresHashes[h].reduce(function (a, f) {
+              return turf.union(a, f)
+            })
+          })
+
+          // clip by the bbox.. not great, but better than clipping by tiles boundaries
+          if (!noGeometry) {
+            features = features.map(function(feature) {
+              return ['Polygon', 'MultiPolygon', 'LineString', 'MultiLineString'].includes(feature.geometry.type) ?
+                turf.bboxClip(feature, bbox) : feature
+            })
+          }
+        }
+
         pool.release(renderer);
         res.send(features);
       });

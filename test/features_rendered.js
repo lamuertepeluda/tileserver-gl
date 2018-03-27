@@ -35,7 +35,7 @@ describe('Rendered features', function() {
     var test = supertest(app).get('/styles/test-style/11/renderedfeatures?bbox=8.3,47,9.2,47.7');
     test.expect(200);
     test.expect(function(res) {
-      res.body.should.have.lengthOf(27);
+      res.body.should.have.lengthOf(17);
     });
     test.end(done);
   });
