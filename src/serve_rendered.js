@@ -575,7 +575,7 @@ module.exports = function(options, repo, params, id, publicUrl, dataResolver) {
           if (!noGeometry) {
             features = features.map(function(feature) {
               return ['Polygon', 'MultiPolygon', 'LineString', 'MultiLineString'].includes(feature.geometry.type) ?
-                turf.bboxClip(feature, bbox) : feature
+                Object.assign(feature, turf.bboxClip(feature, bbox)) : feature
             })
           }
         }
