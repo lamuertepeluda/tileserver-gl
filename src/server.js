@@ -204,6 +204,8 @@ function start(opts) {
   var addTileJSONs = function(arr, req, type) {
     Object.keys(serving[type]).forEach(function(id) {
       var info = clone(serving[type][id]);
+      // Do not take id from inside the descriptions, better to have an id matching our routing
+      info.id = id
       var path = '';
       if (type == 'rendered') {
         path = 'styles/' + id;
