@@ -43,9 +43,13 @@ function start(opts) {
   app.enable('trust proxy');
 
   if (process.env.NODE_ENV == 'production') {
-    app.use(morgan('tiny'));
+    app.use(morgan('tiny', {
+      skip: function(req, res) { return opts.silent && (res.statusCode == 200 || res.statusCode == 304) }
+    }));
   } else if (process.env.NODE_ENV !== 'test') {
-    app.use(morgan('dev'));
+    app.use(morgan('dev', {
+      skip: function(req, res) { return opts.silent && (res.statusCode == 200 || res.statusCode == 304) }
+    }));
   }
 
   var config = opts.config || null;
@@ -248,8 +252,9 @@ function start(opts) {
     startupPromises.push(new Promise(function(resolve, reject) {
       fs.readFile(templateFile, function(err, content) {
         if (err) {
-          console.error('Template not found:', err);
+          err = new Error('Template not found: ' + err.message);
           reject(err);
+          return;
         }
         var compiled = handlebars.compile(content.toString());
 
@@ -417,6 +422,11 @@ function start(opts) {
 
 module.exports = function(opts) {
   var running = start(opts);
+
+  running.startupPromise.catch(function(err) {
+    console.error(err.message);
+    process.exit(1);
+  });
 
   process.on('SIGINT', function() {
     process.exit();
