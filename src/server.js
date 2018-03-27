@@ -212,6 +212,9 @@ function start(opts) {
                   return item.mbtiles
                 }
               ).then(function(sub) {
+                app.get('/data-styles/' + id + '/style.json', function(req, res) {
+                  res.send(style);
+                })
                 app.use('/data-styles/', sub);
               })
             );
