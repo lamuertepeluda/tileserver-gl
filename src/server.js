@@ -14,7 +14,10 @@ var base64url = require('base64url'),
     express = require('express'),
     handlebars = require('handlebars'),
     mercator = new (require('@mapbox/sphericalmercator'))(),
-    morgan = require('morgan');
+    morgan = require('morgan'),
+    generateInspectStyle = require('mapbox-gl-inspect/lib/stylegen.js').generateInspectStyle,
+    generateColoredLayers = require('mapbox-gl-inspect/lib/stylegen.js').generateColoredLayers,
+    brightColor = require('mapbox-gl-inspect/lib/colors.js').brightColor;
 
 var packageJson = require('../package'),
     serve_font = require('./serve_font'),
@@ -185,6 +188,37 @@ function start(opts) {
     startupPromises.push(
       serve_data(options, serving.data, item, id, serving.styles, opts.publicUrl).then(function(sub) {
         app.use('/data/', sub);
+
+        // Also serve maps on raw data using a generated style
+        if (item.serve_rendered !== false) {
+          if (serve_rendered) {
+            var baseStyle = {
+              version: 8,
+              sources: {
+                [id]: {
+                  type: 'vector',
+                  url: 'mbtiles://{' + id + '}'
+                }
+              },
+              layers: []
+            };
+            var sources = {
+              [id]: sub.tileJSON.vector_layers.map(l => l.id)
+            };
+            var style = generateInspectStyle(baseStyle, generateColoredLayers(sources, brightColor))
+            startupPromises.push(
+              serve_rendered(options, serving.rendered, {style: style}, id, opts.publicUrl,
+                function(mbtiles) {
+                  return item.mbtiles
+                }
+              ).then(function(sub) {
+                app.use('/data-styles/', sub);
+              })
+            );
+          } else {
+            item.serve_rendered = false;
+          }
+        }
       })
     );
   });

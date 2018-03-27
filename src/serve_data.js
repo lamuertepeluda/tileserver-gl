@@ -185,6 +185,7 @@ module.exports = function(options, repo, params, id, styles, publicUrl) {
   });
 
   return sourceInfoPromise.then(function() {
+    app.tileJSON = clone(tileJSON)
     return app;
   });
 };

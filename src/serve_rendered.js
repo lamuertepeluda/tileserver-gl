@@ -249,8 +249,13 @@ module.exports = function(options, repo, params, id, publicUrl, dataResolver) {
     });
   };
 
-  var styleJSONPath = path.resolve(options.paths.styles, styleFile);
-  styleJSON = clone(require(styleJSONPath));
+  if (typeof styleFile === 'object') {
+    styleJSON = clone(styleFile)
+  } else {
+    var styleJSONPath = path.resolve(options.paths.styles, styleFile);
+    styleJSON = clone(require(styleJSONPath));
+  }
+  // console.log(JSON.stringify(styleJSON))
 
   var httpTester = /^(http(s)?:)?\/\//;
   if (styleJSON.sprite && !httpTester.test(styleJSON.sprite)) {
@@ -540,6 +545,11 @@ module.exports = function(options, repo, params, id, publicUrl, dataResolver) {
         }
         // TODO: auto deduplicate and merge polygons ?
         var features = renderer.queryRenderedFeatures(geometry, opts)
+        if (req.query.nogeometry && req.query.nogeometry !== 'false') {
+          features.forEach(function(feature) {
+            delete feature.geometry
+          })
+        }
         pool.release(renderer);
         res.send(features);
       });
