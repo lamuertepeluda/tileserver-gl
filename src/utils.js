@@ -156,43 +156,67 @@ module.exports.createDataStyle = function(id, tileJSON) {
     }]
   };
   tileJSON.vector_layers.forEach(function(layer) {
-    style.layers.push(    {
-      "id": layer.id + "_polygon",
-      "source": id,
-      "source-layer": layer.id,
-      "type": "fill",
-      "paint": {
-        "fill-color": randomColor({luminosity: 'bright', format: 'rgba', alpha: 0.4}),
-        "fill-antialias": false
-      },
-      "filter": ["==", "$type", "Polygon"]
-    })
+    var geometryType
+    if (tileJSON.tilestats) {
+      var layerStats = (tileJSON.tilestats.layers || []).find(l => l.layer === layer.id)
+      geometryType = layerStats && layerStats.geometry
+    }
 
-    style.layers.push(    {
-      "id": layer.id + "_line",
-      "source": id,
-      "source-layer": layer.id,
-      "type": "line",
-      "paint": {
-        "line-color": randomColor({luminosity: 'bright', format: 'rgba', alpha: 0.6})
-      },
-      "layout": {
-        "line-join": 'bevel'
-      },
-      "filter": ["==", "$type", "LineString"]
-    })
+    if (geometryType === 'Polygon') {
+      polygonLayer();
+    } else if (geometryType === 'LineString') {
+      lineLayer();
+    } else if (geometryType === 'Point') {
+      pointLayer();
+    } else {
+      polygonLayer();
+      lineLayer();
+      pointLayer();
+    }
 
-    style.layers.push(    {
-      "id": layer.id + "_point",
-      "source": id,
-      "source-layer": layer.id,
-      "type": "circle",
-      "paint": {
-        "circle-color": randomColor({luminosity: 'bright', format: 'rgb'}),
-        "circle-radius": 2
-      },
-      "filter": ["==", "$type", "Point"]
-    })
+    function polygonLayer() {
+      style.layers.push(    {
+        "id": layer.id + "_polygon",
+        "source": id,
+        "source-layer": layer.id,
+        "type": "fill",
+        "paint": {
+          "fill-color": randomColor({luminosity: 'bright', format: 'rgba', alpha: 0.4}),
+          "fill-antialias": false
+        },
+        "filter": ["==", "$type", "Polygon"]
+      })
+    }
+
+    function lineLayer() {
+      style.layers.push(    {
+        "id": layer.id + '_line',
+        "source": id,
+        "source-layer": layer.id,
+        "type": "line",
+        "paint": {
+          "line-color": randomColor({luminosity: 'bright', format: 'rgba', alpha: 0.6})
+        },
+        "layout": {
+          "line-join": 'bevel'
+        },
+        "filter": ["==", "$type", "LineString"]
+      })
+    }
+
+    function pointLayer() {
+      style.layers.push({
+        "id": layer.id + '_point',
+        "source": id,
+        "source-layer": layer.id,
+        "type": "circle",
+        "paint": {
+          "circle-color": randomColor({luminosity: 'bright', format: 'rgb'}),
+          "circle-radius": 2
+        },
+        "filter": ["==", "$type", "Point"]
+      })
+    }
   })
   return style;
 }
