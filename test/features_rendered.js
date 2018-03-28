@@ -1,22 +1,22 @@
 describe('Rendered features', function() {
-  it('Should return features at given point', function(done) {
+  it('Should return features at given point without geometries', function(done) {
     var test = supertest(app).get('/styles/test-style/11/renderedfeatures?point=8.707351684570312,47.359292508710716');
     test.expect(200);
     test.expect(function(res) {
       res.body.should.have.lengthOf(1);
       res.body[0].id.should.equal(92);
-      res.body[0].should.have.property('geometry');
+      res.body[0].should.not.have.property('geometry');
     });
     test.end(done);
   });
 
-  it('Should return features at given point and exclude geometries', function(done) {
-    var test = supertest(app).get('/styles/test-style/11/renderedfeatures?nogeometry=true&point=8.707351684570312,47.359292508710716');
+  it('Should return features at given point', function(done) {
+    var test = supertest(app).get('/styles/test-style/11/renderedfeatures?geometry=raw&point=8.707351684570312,47.359292508710716');
     test.expect(200);
     test.expect(function(res) {
       res.body.should.have.lengthOf(1);
       res.body[0].id.should.equal(92);
-      res.body[0].should.not.have.property('geometry');
+      res.body[0].should.have.property('geometry');
     });
     test.end(done);
   });
@@ -35,13 +35,28 @@ describe('Rendered features', function() {
     var test = supertest(app).get('/styles/test-style/11/renderedfeatures?bbox=8.3,47,9.2,47.7');
     test.expect(200);
     test.expect(function(res) {
+      res.body.should.have.lengthOf(27);
+    });
+    test.end(done)
+  });
+
+  it('Should return features in larger bounding box and try to fix geometries', function(done) {
+    var test = supertest(app).get('/styles/test-style/11/renderedfeatures?geometry=fixed&bbox=8.3,47,9.2,47.7');
+    test.expect(200);
+    test.expect(function(res) {
       res.body.should.have.lengthOf(17);
     });
-    test.end(done);
+    test.end(done)
+  });
+
+  it('Should refuse a too large query', function(done) {
+    var test = supertest(app).get('/styles/test-style/15/renderedfeatures?geometry=fixed&bbox=8.3,47,9.2,47.7');
+    test.expect(400);
+    test.end(done)
   });
 
   it('Should return features at given point on raw data style', function(done) {
-    var test = supertest(app).get('/data-styles/openmaptiles/11/renderedfeatures?point=8.707351684570312,47.359292508710716');
+    var test = supertest(app).get('/data-styles/openmaptiles/11/renderedfeatures?geometry=raw&point=8.707351684570312,47.359292508710716');
     test.expect(200);
     test.expect(function(res) {
       res.body.should.have.lengthOf(1);

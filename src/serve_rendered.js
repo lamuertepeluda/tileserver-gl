@@ -522,6 +522,12 @@ module.exports = function(options, repo, params, id, publicUrl, dataResolver) {
           maxCorner = mercator.px([bbox[2], bbox[1]], z);
       width = maxCorner[0] - minCorner[0];
       height = maxCorner[1] - minCorner[1];
+      const nbPixels = width * height
+      // More than 1920x1080
+      if (nbPixels > 2073600) {
+        return res.status(400).send("The query covers a too large area for this level of zoom. Try a smaller bounding box or a lower zoom level.")
+      }
+
       point = [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2]
       geometry = [[0, width], [0, height]]
     }
@@ -529,6 +535,7 @@ module.exports = function(options, repo, params, id, publicUrl, dataResolver) {
     var pool = map.renderers[1];
     pool.acquire(function(err, renderer) {
       if (err) return next(err);
+
       var renderParams = {
         zoom: z,
         center: point,
@@ -549,30 +556,29 @@ module.exports = function(options, repo, params, id, publicUrl, dataResolver) {
         var features = renderer.queryRenderedFeatures(geometry, opts)
 
         // lighter payload without geometry  if requested
-        var noGeometry = req.query.nogeometry && req.query.nogeometry !== 'false'
-        if (noGeometry) {
+        var geometryParam = req.query.geometry || 'no'
+        if (geometryParam === 'no') {
           features.forEach(function(feature) {
             delete feature.geometry
           })
         }
 
         if (req.query.bbox) {
-          // merge duplicate features
-          var featuresHashes = {}
-          features.forEach(function(feature) {
-            const h = objectHash({id: feature.id, properties: feature.properties})
-            featuresHashes[h] = featuresHashes[h] || []
-            featuresHashes[h].push(feature)
-          })
-          features = Object.keys(featuresHashes).map(function(h) {
-            if (noGeometry) return featuresHashes[h][0]
-            return featuresHashes[h].reduce(function (a, f) {
-              return turf.union(a, f)
+          if (geometryParam === 'fixed') {
+            // merge duplicate features
+            var featuresHashes = {}
+            features.forEach(function(feature) {
+              const h = objectHash({id: feature.id, properties: feature.properties})
+              featuresHashes[h] = featuresHashes[h] || []
+              featuresHashes[h].push(feature)
             })
-          })
+            features = Object.keys(featuresHashes).map(function(h) {
+              return featuresHashes[h].reduce(function (a, f) {
+                return turf.union(a, f)
+              })
+            })
 
-          // clip by the bbox.. not great, but better than clipping by tiles boundaries
-          if (!noGeometry) {
+            // clip by the bbox.. not great, but better than clipping by tiles boundaries
             features = features.map(function(feature) {
               return ['Polygon', 'MultiPolygon', 'LineString', 'MultiLineString'].includes(feature.geometry.type) ?
                 Object.assign(feature, turf.bboxClip(feature, bbox)) : feature
