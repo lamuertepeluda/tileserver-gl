@@ -1,7 +1,8 @@
 'use strict';
 
 var path = require('path'),
-    fs = require('fs');
+    fs = require('fs'),
+    randomColor = require('randomcolor');
 
 var clone = require('clone'),
     glyphCompose = require('glyph-pbf-composite');
@@ -136,3 +137,62 @@ module.exports.getFontsPbf = function(allowedFonts, fontPath, names, range, fall
     return glyphCompose.combine(values);
   });
 };
+
+module.exports.createDataStyle = function(id, tileJSON) {
+  var style = {
+    version: 8,
+    sources: {
+      [id]: {
+        type: 'vector',
+        url: 'mbtiles://{' + id + '}'
+      }
+    },
+    layers: [{
+      id: "background",
+      type: "background",
+      paint: {
+        "background-color": "#fff"
+      }
+    }]
+  };
+  tileJSON.vector_layers.forEach(function(layer) {
+    style.layers.push(    {
+      "id": layer.id + "_polygon",
+      "source": id,
+      "source-layer": layer.id,
+      "type": "fill",
+      "paint": {
+        "fill-color": randomColor({luminosity: 'bright', format: 'rgba', alpha: 0.4}),
+        "fill-antialias": false
+      },
+      "filter": ["==", "$type", "Polygon"]
+    })
+
+    style.layers.push(    {
+      "id": layer.id + "_line",
+      "source": id,
+      "source-layer": layer.id,
+      "type": "line",
+      "paint": {
+        "line-color": randomColor({luminosity: 'bright', format: 'rgba', alpha: 0.6})
+      },
+      "layout": {
+        "line-join": 'bevel'
+      },
+      "filter": ["==", "$type", "LineString"]
+    })
+
+    style.layers.push(    {
+      "id": layer.id + "_point",
+      "source": id,
+      "source-layer": layer.id,
+      "type": "circle",
+      "paint": {
+        "circle-color": randomColor({luminosity: 'bright', format: 'rgb'}),
+        "circle-radius": 2
+      },
+      "filter": ["==", "$type", "Point"]
+    })
+  })
+  return style;
+}
