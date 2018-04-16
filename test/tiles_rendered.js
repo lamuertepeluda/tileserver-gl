@@ -32,9 +32,6 @@ describe('Raster tiles', function() {
   describe('invalid requests return 4xx', function() {
     testTile('non_existent', 0, 0, 0, 'png', 404);
     testTile(prefix, -1, 0, 0, 'png', 404);
-    testTile(prefix, 25, 0, 0, 'png', 404);
-    testTile(prefix, 0, 1, 0, 'png', 404);
-    testTile(prefix, 0, 0, 1, 'png', 404);
     testTile(prefix, 0, 0, 0, 'gif', 400);
     testTile(prefix, 0, 0, 0, 'pbf', 400);
 
@@ -43,4 +40,10 @@ describe('Raster tiles', function() {
 
     //testTile('hybrid', 0, 0, 0, 'png', 404); //TODO: test this
   });
+
+  describe('out of bounds requests return 204', function() {
+    testTile(prefix, 25, 0, 0, 'png', 204);    
+    testTile(prefix, 0, 1, 0, 'png', 204);
+    testTile(prefix, 0, 0, 1, 'png', 204);
+  })
 });

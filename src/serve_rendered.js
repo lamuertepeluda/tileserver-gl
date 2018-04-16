@@ -463,7 +463,7 @@ module.exports = function(options, repo, params, id, publicUrl, dataResolver) {
         }
         image.toBuffer(function(err, buffer, info) {
           if (!buffer) {
-            return res.status(404).send('Not found');
+            return res.status(204).send();
           }
 
           res.set({
@@ -491,7 +491,7 @@ module.exports = function(options, repo, params, id, publicUrl, dataResolver) {
         format = req.params.format;
     if (z < 0 || x < 0 || y < 0 ||
         z > 20 || x >= Math.pow(2, z) || y >= Math.pow(2, z)) {
-      return res.status(404).send('Out of bounds');
+      return res.status(204).send();
     }
     var tileSize = 256;
     var tileCenter = mercator.ll([

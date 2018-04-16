@@ -19,10 +19,13 @@ describe('Vector tiles', function() {
   describe('non-existent requests return 4xx', function() {
     testTile('non_existent', 0, 0, 0, 404);
     testTile(prefix, -1, 0, 0, 404); // err zoom
-    testTile(prefix, 20, 0, 0, 404); // zoom out of bounds
-    testTile(prefix, 0, 1, 0, 404);
-    testTile(prefix, 0, 0, 1, 404);
-
-    testTile(prefix, 14, 0, 0, 404); // non existent tile
   });
+
+  describe('out of bounds requests return 204', function() {
+    testTile(prefix, 20, 0, 0, 204); // zoom out of bounds
+    testTile(prefix, 0, 1, 0, 204);
+    testTile(prefix, 0, 0, 1, 204);
+
+    testTile(prefix, 14, 0, 0, 204); // non existent tile
+  })
 });
