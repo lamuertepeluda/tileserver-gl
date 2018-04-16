@@ -84,18 +84,18 @@ module.exports = function(options, repo, params, id, styles, publicUrl) {
     if (z < tileJSON.minzoom || 0 || x < 0 || y < 0 ||
         z > tileJSON.maxzoom ||
         x >= Math.pow(2, z) || y >= Math.pow(2, z)) {
-      return res.status(404).send('Out of bounds');
+      return res.status(204).send();
     }
     source.getTile(z, x, y, function(err, data, headers) {
       if (err) {
         if (/does not exist/.test(err.message)) {
-          return res.status(404).send(err.message);
+          return res.status(204).send();
         } else {
           return res.status(500).send(err.message);
         }
       } else {
         if (data == null) {
-          return res.status(404).send('Not found');
+          return res.status(204).send();
         } else {
           if (tileJSON['format'] == 'pbf') {
             var isGzipped = data.slice(0,2).indexOf(
