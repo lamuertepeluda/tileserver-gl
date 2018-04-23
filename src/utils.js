@@ -9,7 +9,7 @@ var clone = require('clone'),
 
 
 module.exports.getPublicUrl = function(publicUrl, req) {
-  return publicUrl || (req.protocol + '://' + req.headers.host + '/')
+  return req.get('x-forwarded-url') || publicUrl || (req.protocol + '://' + req.headers.host + '/')
 }
 
 module.exports.getTileUrls = function(req, domains, path, format, publicUrl, aliases) {
