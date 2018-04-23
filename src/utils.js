@@ -55,13 +55,14 @@ module.exports.getTileUrls = function(req, domains, path, format, publicUrl, ali
   }
 
   var uris = [];
-  if (!publicUrl) {
+  const baseUrl = req.get('x-forwarded-url') || publicUrl
+  if (!baseUrl) {
     domains.forEach(function(domain) {
       uris.push(req.protocol + '://' + domain + '/' + path +
                 '/{z}/{x}/{y}.' + format + query);
     });
   } else {
-    uris.push(publicUrl + path + '/{z}/{x}/{y}.' + format + query)
+    uris.push(baseUrl + path + '/{z}/{x}/{y}.' + format + query)
   }
 
   return uris;
